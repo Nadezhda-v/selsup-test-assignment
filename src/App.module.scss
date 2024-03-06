@@ -1,0 +1,21 @@
+.form {
+  padding: 50px;
+
+  label {
+    width: 120px;
+    display: inline-block;
+    font-weight: 600;
+    padding-right: 8px;
+  }
+
+  input {
+    font-size: 0.9rem;
+    padding: 3px 2px;
+  }
+}
+
+.wrapper {
+  padding-bottom: 10px;
+  display: flex;
+  align-items: center;
+}
