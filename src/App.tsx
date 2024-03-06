@@ -117,12 +117,14 @@ const getParamType = async (data: ParamEditorProps) => {
   });
 };
 
+const BASE_URL = process.env.REACT_APP_BASE_URL || 'http://localhost:3000';
+
 const App: FC = () => {
   const [data, setData] = useState<ParamEditorProps | null>(null);
 
   const fetchData = async () => {
     try {
-      const response = await fetch('http://localhost:3000/data.json');
+      const response = await fetch(`${BASE_URL}/data.json`);
       const data = await response.json();
       const paramsWithTypes = await getParamType(data);
 
