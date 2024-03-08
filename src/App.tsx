@@ -1,17 +1,13 @@
-import React, { FC, useCallback, useEffect, useState } from 'react';
+import React, { FC, useEffect, useState } from 'react';
 
 import styles from './App.module.scss';
 
-enum ParamType {
-  String = 'string',
-  Number = 'number',
-  Array = 'array',
-}
+const BASE_URL = process.env.REACT_APP_BASE_URL;
 
 interface Param {
   id: number;
   name: string;
-  type: ParamType;
+  type: 'string';
 }
 
 interface ParamValue {
@@ -23,112 +19,95 @@ interface Model {
   paramValues: ParamValue[];
 }
 
-interface ParamEditorProps {
+interface ModelEditorProps {
   params: Param[];
   model: Model;
-  onModelChange: (model: Model) => void;
 }
 
-const getParamName = (name: string | Array<string>) =>
-  Array.isArray(name) ? name.join(', ') : name;
+interface ParamEditorProps {
+  param: Param;
+  paramValue?: ParamValue;
+  onParamChange: (paramId: number, value: string) => void;
+  onBlur?: () => void;
+  error?: string;
+}
 
 const ParamEditor: FC<ParamEditorProps> = ({
-  params,
-  model,
-  onModelChange,
+  param,
+  paramValue,
+  onParamChange,
+  onBlur,
+  error,
 }) => {
-  const [editedModel, setEditedModel] = useState<Model>({
-    paramValues: [...model.paramValues],
-  });
+  const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = event.target.value;
 
-  const handleInputChange = useCallback(
-    (event: React.ChangeEvent<HTMLInputElement>, paramId: number) => {
-      if (!editedModel) return;
-
-      const newValue = event.target.value;
-      const updatedParamValues = editedModel.paramValues.map((paramValue) =>
-        paramValue.paramId === paramId
-          ? { ...paramValue, value: newValue }
-          : paramValue,
-      );
-
-      setEditedModel((prevModel) => ({
-        ...prevModel,
-        paramValues: updatedParamValues,
-      }));
-    },
-    [editedModel.paramValues],
-  );
-
-  const getModel = () => {
-    console.log(editedModel);
+    onParamChange(param.id, newValue);
   };
 
-  useEffect(() => {
-    onModelChange(editedModel);
-    getModel();
-  }, [editedModel]);
-
   return (
-    <form className={styles.form}>
-      {params.map((param) => (
-        <div key={param.id} className={styles.wrapper}>
-          <label htmlFor={`${param.id}`}>{getParamName(param.name)}</label>
+    <>
+      <label htmlFor={`${param.id}`}>{param.name}</label>
+      {paramValue && (
+        <div className={styles.inputWrap}>
           <input
             type='text'
-            id={`${param.id}`}
-            value={
-              editedModel.paramValues.find(
-                (value) => value.paramId === param.id,
-              )?.value || ''
-            }
-            onChange={(e) => handleInputChange(e, param.id)}
+            value={paramValue.value}
+            onChange={handleChange}
+            onBlur={onBlur}
           />
+          {error && <span className={styles.error}>{error}</span>}
         </div>
-      ))}
-    </form>
+      )}
+    </>
   );
 };
 
-const typeCheckers: { [key: string]: (value: any) => boolean } = {
-  number: (value: any) =>
-    !Number.isNaN(parseFloat(value)) && Number.isFinite(value),
-  array: (value: any) => Array.isArray(value),
+const StringParamEditor: FC<ParamEditorProps> = ({
+  param,
+  paramValue,
+  onParamChange,
+}) => {
+  const [error, setError] = useState('');
+
+  const validateInput = () => {
+    if (!paramValue?.value) {
+      setError('Поле обязательно для заполнения');
+    } else if (/\d/.test(paramValue.value)) {
+      setError('Ожидается строковое значение');
+    } else {
+      setError('');
+    }
+  };
+
+  return (
+    <ParamEditor
+      param={param}
+      paramValue={paramValue}
+      onParamChange={onParamChange}
+      onBlur={validateInput}
+      error={error}
+    />
+  );
 };
 
-const getParamType = async (data: ParamEditorProps) => {
-  return data.params.map((param: Param) => {
-    let paramType: ParamType = ParamType.String;
+const ModelEditor: FC = () => {
+  const [data, setData] = useState<ModelEditorProps | null>(null);
 
-    Object.entries(typeCheckers).some(([type, check]) => {
-      if (check(param.name)) {
-        paramType = type as ParamType;
-
-        return true;
-      }
-
-      return false;
-    });
-
-    return {
-      ...param,
-      type: paramType,
+  useEffect(() => {
+    const getModel = () => {
+      console.log(data?.model.paramValues);
     };
-  });
-};
 
-const BASE_URL = process.env.REACT_APP_BASE_URL || 'http://localhost:3000';
-
-const App: FC = () => {
-  const [data, setData] = useState<ParamEditorProps | null>(null);
+    getModel();
+  }, [data?.model.paramValues]);
 
   const fetchData = async () => {
     try {
       const response = await fetch(`${BASE_URL}/data.json`);
       const data = await response.json();
-      const paramsWithTypes = await getParamType(data);
 
-      setData({ ...data, params: paramsWithTypes });
+      setData(data);
     } catch (error) {
       console.error('Ошибка при загрузке данных:', error);
     }
@@ -138,24 +117,53 @@ const App: FC = () => {
     fetchData();
   }, []);
 
-  const handleModelChange = (editedModel: Model) => {
-    setData((prevData) =>
-      prevData ? { ...prevData, model: editedModel } : null,
+  const handleParamChange = (paramId: number, value: string) => {
+    setData((prevData) => {
+      if (!prevData) return null;
+
+      const updatedParamValues = prevData.model.paramValues.map((paramValue) =>
+        paramValue.paramId === paramId ? { ...paramValue, value } : paramValue,
+      );
+
+      return { ...prevData, model: { paramValues: updatedParamValues } };
+    });
+  };
+
+  const renderEditor = (param: Param) => {
+    const paramValue = data?.model.paramValues.find(
+      (value) => value.paramId === param.id,
     );
+
+    switch (param.type) {
+      case 'string':
+        return (
+          <StringParamEditor
+            param={param}
+            paramValue={paramValue}
+            onParamChange={handleParamChange}
+          />
+        );
+      default:
+        return null;
+    }
   };
 
   return (
-    <div>
-      {data ? (
-        <ParamEditor
-          params={data.params}
-          model={data.model}
-          onModelChange={handleModelChange}
-        />
-      ) : (
-        <span>Загрузка данных...</span>
-      )}
+    <div className={styles.container}>
+      {data?.params.map((param) => (
+        <div key={param.id} className={styles.wrapper}>
+          {renderEditor(param)}
+        </div>
+      ))}
     </div>
+  );
+};
+
+const App: FC = () => {
+  return (
+    <>
+      <ModelEditor />
+    </>
   );
 };
 

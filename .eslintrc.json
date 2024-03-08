@@ -104,6 +104,7 @@
     "react/jsx-indent-props": ["error", 2],
     "react/jsx-props-no-spreading": 0,
     "react/state-in-constructor": 0,
+    "react/no-unused-prop-types": 0,
     "react/prop-types": 2,
     "no-underscore-dangle": 0,
     "no-multiple-empty-lines": ["error", { "max": 1, "maxEOF": 1 }],
