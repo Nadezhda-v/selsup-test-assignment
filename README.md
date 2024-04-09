@@ -1,3 +1,3 @@
-Ссылка на задание: https://docs.google.com/forms/d/e/1FAIpQLSdUSx0hsd70mDNBqxfl8lERifa42mhiO6L9dmceqcNnFASXnw/viewform?usp=sharing
+Ссылка на задание: https://disk.yandex.ru/i/fq_sd-10mcGnKg
 
 Ссылка на деплой: https://selsup-test-assignment.vercel.app
